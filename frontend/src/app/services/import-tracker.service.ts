@@ -80,7 +80,7 @@ export class ImportTrackerService {
       ? `Импорт «${job.filename}» прерван`
       : `Импорт завершён: создано ${job.created}, обновлено ${job.updated}, ошибок ${job.errors.length}`;
     this.snackBar
-      .open(message, 'Отчёт', { duration: 8000 })
+      .open(message, 'Отчёт', { duration: 8000, panelClass: job.status === 'failed' ? 'toast-error' : '' })
       .onAction()
       .subscribe(() => void this.router.navigate(['/import']));
   }

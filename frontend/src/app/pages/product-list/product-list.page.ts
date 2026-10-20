@@ -1,11 +1,10 @@
-import { AsyncPipe, CurrencyPipe } from '@angular/common';
+import { AsyncPipe, CurrencyPipe, DecimalPipe, I18nPluralPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatListModule } from '@angular/material/list';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router, RouterLink } from '@angular/router';
@@ -26,9 +25,9 @@ const DEFAULT_LIMIT = 20;
   selector: 'app-product-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    AsyncPipe, CurrencyPipe, RouterLink, ReactiveFormsModule,
+    AsyncPipe, CurrencyPipe, DecimalPipe, I18nPluralPipe, RouterLink, ReactiveFormsModule,
     MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule,
-    MatListModule, MatPaginatorModule, MatProgressBarModule,
+    MatPaginatorModule, MatProgressBarModule,
   ],
   templateUrl: './product-list.page.html',
   styleUrl: './product-list.page.scss',
@@ -51,6 +50,8 @@ export class ProductListPage {
     priceMin: toNumber(this.priceMin()),
     priceMax: toNumber(this.priceMax()),
   }));
+
+  protected readonly productPlural = { one: 'товар', few: 'товара', many: 'товаров', other: 'товара' };
 
   protected readonly products$ = this.store.select(selectAllProducts);
   protected readonly loading$ = this.store.select(selectProductsLoading);

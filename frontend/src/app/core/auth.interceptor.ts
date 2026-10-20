@@ -25,11 +25,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         if (error.status === 401 && !req.url.endsWith('/auth/login')) {
           auth.logout(router.url);
         } else if (error.status === 0) {
-          snackBar.open('Нет связи с сервером. Проверьте подключение к сети.', 'OK', { duration: 5000 });
+          snackBar.open('Нет связи с сервером. Проверьте подключение к сети.', 'OK', { panelClass: 'toast-error' });
         } else if (error.status >= 500) {
-          snackBar.open('Ошибка на сервере. Попробуйте позже.', 'OK', { duration: 5000 });
+          snackBar.open('Ошибка на сервере. Попробуйте позже.', 'OK', { panelClass: 'toast-error' });
         } else if (error.status === 429) {
-          snackBar.open('Слишком много запросов. Подождите минуту.', 'OK', { duration: 5000 });
+          snackBar.open('Слишком много запросов. Подождите минуту.', 'OK', { panelClass: 'toast-error' });
         }
       }
       return throwError(() => error);

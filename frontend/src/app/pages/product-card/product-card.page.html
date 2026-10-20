@@ -1,64 +1,101 @@
-<a mat-button routerLink="/products" [queryParams]="listParams$ | async"><mat-icon>arrow_back</mat-icon> К списку</a>
+<a mat-button class="back" routerLink="/products" [queryParams]="listParams$ | async"><mat-icon>arrow_back</mat-icon> К списку</a>
 
 @if (state$ | async; as state) {
   @if (state.loading) {
     <mat-progress-bar mode="indeterminate" aria-label="Загрузка товара" />
   } @else if ('error' in state) {
-    <p class="error" role="alert">{{ state.error }}</p>
+    <div class="empty panel">
+      <h2 role="alert">{{ state.error }}</h2>
+      <p><a routerLink="/products">Вернуться к списку товаров</a></p>
+    </div>
   } @else {
     @let product = state.product;
+    @let images = product.images;
+    @let current = images.at(selected());
     <article>
-      <h1>{{ product.name }}</h1>
+      <header class="page-head">
+        <div>
+          <p class="eyebrow">Карточка товара</p>
+          <h1>{{ product.name }}</h1>
+        </div>
+      </header>
 
       <div class="layout">
         <section class="gallery" aria-label="Изображения">
-          @for (image of product.images; track image.url) {
-            @if (image.src) {
-              <a [href]="image.src" target="_blank" rel="noopener">
-                <img [src]="image.src" [alt]="product.name" loading="lazy" />
+          <div class="stage">
+            @if (current?.src) {
+              <a [href]="current!.src" target="_blank" rel="noopener">
+                <img [src]="current!.src" [alt]="product.name" />
               </a>
             } @else {
-              <div class="missing" [title]="image.url">
-                <mat-icon aria-hidden="true">broken_image</mat-icon>
-                <span>Не удалось скачать</span>
+              <div class="placeholder">
+                <mat-icon aria-hidden="true">{{ current ? 'broken_image' : 'image_not_supported' }}</mat-icon>
+                <span>{{ current ? 'Не удалось скачать' : 'Нет изображений' }}</span>
               </div>
             }
-          } @empty {
-            <div class="missing"><mat-icon aria-hidden="true">image_not_supported</mat-icon><span>Нет изображений</span></div>
+          </div>
+          @if (images.length > 1) {
+            <div class="thumbs" role="list">
+              @for (image of images; track image.url; let i = $index) {
+                <button
+                  type="button"
+                  role="listitem"
+                  [class.active]="i === selected()"
+                  [attr.aria-label]="'Изображение ' + (i + 1)"
+                  [attr.aria-current]="i === selected()"
+                  (click)="selected.set(i)"
+                >
+                  @if (image.src) {
+                    <img [src]="image.src" alt="" loading="lazy" />
+                  } @else {
+                    <span class="missing" [title]="'Не удалось скачать: ' + image.url">
+                      <mat-icon aria-hidden="true">broken_image</mat-icon>
+                      <span class="sr-label">Не удалось скачать</span>
+                    </span>
+                  }
+                </button>
+              }
+            </div>
           }
         </section>
 
-        <mat-card appearance="outlined" class="info">
-          <mat-card-content>
-            <p class="price">{{ +product.price | currency: 'RUB' : 'symbol-narrow' }}</p>
-            <dl>
-              <dt>Скидка</dt>
-              <dd>{{ product.discount !== null ? product.discount + '%' : '—' }}</dd>
-              <dt>Внешний код</dt>
-              <dd>{{ product.externalCode }}</dd>
-            </dl>
-          </mat-card-content>
-        </mat-card>
+        <aside class="info panel">
+          <p class="eyebrow">Цена</p>
+          <p class="price">{{ +product.price | currency: 'RUB' : 'symbol-narrow' }}</p>
+          @if (product.discount !== null) {
+            <span class="badge green">Скидка {{ product.discount }}%</span>
+          }
+          <dl>
+            <dt>Внешний код</dt>
+            <dd>{{ product.externalCode }}</dd>
+            <dt>Изображений</dt>
+            <dd>{{ images.length }}</dd>
+            <dt>Характеристик</dt>
+            <dd>{{ product.attributes.length }}</dd>
+          </dl>
+        </aside>
       </div>
 
       @if (product.description) {
-        <section>
-          <h2>Описание</h2>
+        <section class="block">
+          <h2 class="section-title">Описание</h2>
           <p class="description">{{ product.description }}</p>
         </section>
       }
 
-      <section>
-        <h2>Характеристики</h2>
+      <section class="block">
+        <h2 class="section-title">Характеристики</h2>
         @if (product.attributes.length) {
-          <dl class="attributes">
+          <dl class="rows attributes">
             @for (attribute of product.attributes; track attribute.key) {
-              <dt>{{ attribute.key }}</dt>
-              <dd>{{ attribute.value ?? '—' }}</dd>
+              <div>
+                <dt>{{ attribute.key }}</dt>
+                <dd>{{ attribute.value ?? '—' }}</dd>
+              </div>
             }
           </dl>
         } @else {
-          <p>Нет дополнительных полей.</p>
+          <p class="muted">Нет дополнительных полей.</p>
         }
       </section>
     </article>

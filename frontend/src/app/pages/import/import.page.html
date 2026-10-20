@@ -1,24 +1,41 @@
-<h1>Импорт товаров</h1>
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Загрузка данных</p>
+    <h1>Импорт товаров</h1>
+  </div>
+</header>
 
-<mat-card appearance="outlined">
-  <mat-card-content>
-    <p>Загрузите файл .xlsx (до 10 МБ). Товары обновляются по внешнему коду, повторный импорт не создаёт дубликатов.</p>
-    <div class="picker">
-      <input #fileInput type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-             hidden (change)="onFileSelected(fileInput)" />
-      <button mat-stroked-button type="button" (click)="fileInput.click()" [disabled]="running()">
-        <mat-icon>attach_file</mat-icon> Выбрать файл
-      </button>
-      <span class="filename">{{ file()?.name ?? 'Файл не выбран' }}</span>
-      <button mat-flat-button type="button" (click)="upload()" [disabled]="!file() || running()">
-        <mat-icon>upload</mat-icon> Импортировать
-      </button>
-    </div>
-    @if (error()) {
-      <p class="error" role="alert">{{ error() }}</p>
-    }
-  </mat-card-content>
-</mat-card>
+<div
+  class="dropzone"
+  [class.dragging]="dragging()"
+  [class.disabled]="running()"
+  (dragover)="onDragOver($event)"
+  (dragleave)="dragging.set(false)"
+  (drop)="onDrop($event)"
+>
+  <input #fileInput type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+         hidden (change)="onFileSelected(fileInput.files); fileInput.value = ''" />
+  <span class="dropzone-icon"><mat-icon aria-hidden="true">upload_file</mat-icon></span>
+  @if (file(); as selected) {
+    <p class="dropzone-title">{{ selected.name }}</p>
+    <p class="muted">{{ selected.size / 1024 | number: '1.0-0' }} КБ · готов к импорту</p>
+  } @else {
+    <p class="dropzone-title">Перетащите файл .xlsx сюда</p>
+    <p class="muted">или выберите на компьютере — до 10 МБ. Товары обновляются по внешнему коду, дубликаты не создаются.</p>
+  }
+  <div class="dropzone-actions">
+    <button mat-stroked-button type="button" (click)="fileInput.click()" [disabled]="running()">
+      <mat-icon>attach_file</mat-icon> Выбрать файл
+    </button>
+    <button mat-flat-button type="button" (click)="upload()" [disabled]="!file() || running()">
+      <mat-icon>upload</mat-icon> Импортировать
+    </button>
+  </div>
+</div>
+
+@if (error()) {
+  <p class="message error" role="alert"><mat-icon>error</mat-icon>{{ error() }}</p>
+}
 
 @if (uploading()) {
   <mat-progress-bar mode="indeterminate" aria-label="Загрузка файла" />
@@ -26,10 +43,13 @@
 
 @if (job(); as job) {
   <section class="job" aria-live="polite">
-    <h2>
-      {{ job.filename }}
-      <span class="status" [class]="job.status">{{ statusLabels[job.status] }}</span>
-    </h2>
+    <div class="job-head">
+      <div>
+        <p class="eyebrow">Последний импорт</p>
+        <h2>{{ job.filename }}</h2>
+      </div>
+      <span class="badge" [class]="statusBadge[job.status]">{{ statusLabels[job.status] }}</span>
+    </div>
 
     <mat-progress-bar
       [mode]="job.status === 'queued' ? 'indeterminate' : 'determinate'"
@@ -37,32 +57,40 @@
       [attr.aria-valuenow]="percent()"
       aria-label="Прогресс импорта"
     />
-    <p class="counts">
-      Обработано {{ job.processed }} из {{ job.total }} ·
-      создано {{ job.created }} · обновлено {{ job.updated }} ·
-      ошибок {{ job.errors.length }}
+    <p class="counts">Обработано {{ job.processed }} из {{ job.total }}</p>
+
+    <dl class="stats">
+      <div><dt>Строк</dt><dd>{{ job.total }}</dd></div>
+      <div><dt>Создано</dt><dd>{{ job.created }}</dd></div>
+      <div><dt>Обновлено</dt><dd>{{ job.updated }}</dd></div>
+      <div [class.has-errors]="job.errors.length"><dt>Ошибок</dt><dd>{{ job.errors.length }}</dd></div>
+    </dl>
+
+    <div class="job-foot">
       @if (job.finishedAt) {
-        · завершён {{ job.finishedAt | date: 'dd.MM.yyyy HH:mm:ss' }}
+        <span class="muted">Завершён {{ job.finishedAt | date: 'dd.MM.yyyy HH:mm:ss' }}</span>
       }
-    </p>
-    @if (job.status === 'done') {
-      <a mat-button routerLink="/products">Перейти к товарам <mat-icon iconPositionEnd>arrow_forward</mat-icon></a>
-    }
+      @if (job.status === 'done') {
+        <a mat-button routerLink="/products">Перейти к товарам <mat-icon iconPositionEnd>arrow_forward</mat-icon></a>
+      }
+    </div>
 
     @if (job.errors.length) {
-      <h3>Отчёт об ошибках</h3>
-      <table mat-table [dataSource]="job.errors" class="errors">
-        <ng-container matColumnDef="row">
-          <th mat-header-cell *matHeaderCellDef>Строка</th>
-          <td mat-cell *matCellDef="let e">{{ e.row || '—' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="message">
-          <th mat-header-cell *matHeaderCellDef>Ошибка</th>
-          <td mat-cell *matCellDef="let e">{{ e.message }}</td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="['row', 'message']"></tr>
-        <tr mat-row *matRowDef="let row; columns: ['row', 'message']"></tr>
-      </table>
+      <h3 class="section-title">Отчёт об ошибках</h3>
+      <div class="rows errors-wrap">
+        <table mat-table [dataSource]="job.errors" class="errors">
+          <ng-container matColumnDef="row">
+            <th mat-header-cell *matHeaderCellDef>Строка</th>
+            <td mat-cell *matCellDef="let e"><span class="badge red">{{ e.row || '—' }}</span></td>
+          </ng-container>
+          <ng-container matColumnDef="message">
+            <th mat-header-cell *matHeaderCellDef>Ошибка</th>
+            <td mat-cell *matCellDef="let e">{{ e.message }}</td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="['row', 'message']"></tr>
+          <tr mat-row *matRowDef="let row; columns: ['row', 'message']"></tr>
+        </table>
+      </div>
     }
   </section>
 }

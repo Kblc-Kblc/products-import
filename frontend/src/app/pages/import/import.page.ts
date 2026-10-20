@@ -1,9 +1,8 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
@@ -16,7 +15,7 @@ const MAX_BYTES = 10 * 1024 * 1024;
 @Component({
   selector: 'app-import-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, MatCardModule, MatButtonModule, MatIconModule, MatProgressBarModule, MatTableModule],
+  imports: [DatePipe, DecimalPipe, RouterLink, MatButtonModule, MatIconModule, MatProgressBarModule, MatTableModule],
   templateUrl: './import.page.html',
   styleUrl: './import.page.scss',
 })
@@ -31,7 +30,15 @@ export class ImportPage {
     failed: 'ошибка',
   };
 
+  protected readonly statusBadge: Record<ImportJob['status'], string> = {
+    queued: 'badge',
+    processing: 'badge amber',
+    done: 'badge green',
+    failed: 'badge red',
+  };
+
   protected readonly file = signal<File | null>(null);
+  protected readonly dragging = signal(false);
   protected readonly uploading = signal(false);
   protected readonly error = signal<string | null>(null);
 
@@ -39,9 +46,20 @@ export class ImportPage {
   protected readonly percent = this.tracker.percent;
   protected readonly running = computed(() => this.uploading() || this.tracker.running());
 
-  onFileSelected(input: HTMLInputElement): void {
-    const file = input.files?.[0] ?? null;
-    input.value = '';
+  onDragOver(event: DragEvent): void {
+    if (this.running()) return;
+    event.preventDefault();
+    this.dragging.set(true);
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.dragging.set(false);
+    if (!this.running()) this.onFileSelected(event.dataTransfer?.files ?? null);
+  }
+
+  onFileSelected(files: FileList | null): void {
+    const file = files?.[0] ?? null;
     this.error.set(null);
     if (file && !file.name.toLowerCase().endsWith('.xlsx')) {
       this.error.set('Нужен файл с расширением .xlsx');

@@ -1,6 +1,6 @@
 import { AsyncPipe, CurrencyPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -28,12 +28,16 @@ export class ProductCardPage {
   /** Back link returns to the page and filters the user came from */
   protected readonly listParams$ = inject(Store).select(selectProductsQueryParams);
 
+  /** Index of the image shown large in the gallery */
+  protected readonly selected = signal(0);
+
   /** Bound from the :id route param */
   readonly id = input.required<string>();
 
   protected readonly state$ = toObservable(this.id).pipe(
-    switchMap((id) =>
-      this.productService.get(Number(id)).pipe(
+    switchMap((id) => {
+      this.selected.set(0);
+      return this.productService.get(Number(id)).pipe(
         map((product): CardState => ({ loading: false, product })),
         catchError((e: unknown) =>
           of<CardState>({
@@ -42,7 +46,7 @@ export class ProductCardPage {
           }),
         ),
         startWith<CardState>({ loading: true }),
-      ),
-    ),
+      );
+    }),
   );
 }

@@ -11,7 +11,7 @@ export class GlobalErrorHandler implements ErrorHandler {
     console.error(error);
     // HTTP errors are already reported by the interceptor
     if (!(error instanceof HttpErrorResponse)) {
-      this.snackBar.open('Что-то пошло не так. Обновите страницу.', 'OK', { duration: 5000 });
+      this.snackBar.open('Что-то пошло не так. Обновите страницу.', 'OK', { panelClass: 'toast-error' });
     }
   }
 }

@@ -8,7 +8,7 @@ const XLSX = path.resolve(__dirname, '../../import example (2) Фул.xlsx');
 async function login(page: Page): Promise<void> {
   await page.goto('/login');
   await page.getByLabel('Email').fill(EMAIL);
-  await page.getByLabel('Пароль').fill(PASSWORD);
+  await page.getByLabel('Пароль', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Войти' }).click();
   await expect(page.getByRole('button', { name: 'Выйти' })).toBeVisible();
 }
@@ -20,9 +20,9 @@ test('guest is redirected to login and wrong password is rejected', async ({ pag
   await expect(page).toHaveURL(/\/login\?returnUrl=%2Fproducts/);
 
   await page.getByLabel('Email').fill(EMAIL);
-  await page.getByLabel('Пароль').fill('wrong-password');
+  await page.getByLabel('Пароль', { exact: true }).fill('wrong-password');
   await page.getByRole('button', { name: 'Войти' }).click();
-  await expect(page.getByRole('alert')).toHaveText('Неверный email или пароль');
+  await expect(page.getByRole('alert')).toContainText('Неверный email или пароль');
 });
 
 test('import: upload xlsx, see progress finish and error report', async ({ page }) => {
@@ -41,7 +41,7 @@ test('import: upload xlsx, see progress finish and error report', async ({ page 
 test('list: server pagination and filters', async ({ page }) => {
   await login(page);
   await expect(page).toHaveURL(/\/products$/);
-  const items = page.locator('mat-nav-list a');
+  const items = page.locator('a.product-row');
   await expect(items).toHaveCount(20);
 
   await page.getByRole('button', { name: 'Следующая страница' }).click();
@@ -67,7 +67,7 @@ test('card: fields, attributes and images', async ({ page }) => {
   await login(page);
   await page.getByLabel('Название').fill('Grigio/Verde');
   await page.getByRole('button', { name: 'Найти' }).click();
-  await page.locator('mat-nav-list a').first().click();
+  await page.locator('a.product-row').first().click();
 
   await expect(page).toHaveURL(/\/products\/\d+$/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Бермуды мужские, Grigio/Verde');
@@ -104,7 +104,7 @@ test('import progress is visible in the header on other pages, then a toast link
   // Go to a product card: the header keeps showing the running import
   await page.goto('/products/1');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  const headerProgress = page.getByRole('status').filter({ hasText: 'Импорт «' });
+  const headerProgress = page.getByRole('status').filter({ hasText: 'Подробнее' });
   await expect(headerProgress).toContainText('10 из 40');
 
   // When it finishes: header bar disappears, toast offers the report
@@ -122,5 +122,5 @@ test('network failure shows a toast instead of failing silently', async ({ page 
   await page.getByRole('button', { name: 'Найти' }).click();
 
   await expect(page.getByText('Нет связи с сервером. Проверьте подключение к сети.')).toBeVisible();
-  await expect(page.getByRole('alert')).toHaveText('Не удалось загрузить товары');
+  await expect(page.getByRole('alert')).toContainText('Не удалось загрузить товары');
 });
