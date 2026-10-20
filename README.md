@@ -97,7 +97,7 @@ Rate limiting (nginx `limit_req`): `POST /api/imports` и `POST /api/auth/login`
 - **Интеграционные (PostgreSQL):** CRUD товаров с атрибутами и изображениями, каскадное удаление, уникальность `external_code`, поиск/пагинация, сидеры; конвейер импорта целиком — RabbitMQ заменён in-memory транспортом, HTTP — mock-клиентом (`tests/Integration`).
 - **Функциональные API:** реальное Slim-приложение без веб-сервера — авторизация, пагинация, фильтры, валидация параметров и файла, постановка импорта в очередь (`tests/Functional`).
 - **e2e (Playwright):** вход, импорт файла-примера с прогрессом и отчётом, прогресс в шапке на других страницах и уведомление о завершении, пагинация и фильтры, карточка, уведомление при обрыве сети (`frontend/e2e`).
-- **PHPStan** level 6 с `phpstan-doctrine` (`backend/phpstan.neon`), **PHP CS Fixer** PER-CS 2.0 (`backend/.php-cs-fixer.dist.php`).
+- **PHPStan** level 6 с `phpstan-doctrine` (`backend/phpstan.neon`), **PHP CS Fixer** PER-CS 2.0 (`backend/.php-cs-fixer.php`).
 - **GitHub Actions** (`.github/workflows/ci.yml`): PHPStan, CS Fixer, миграции на пустой БД, PHPUnit; сборка фронтенда; сборка Docker-образов, запуск стека и e2e.
 
 Интеграционные тесты работают только с базой, имя которой оканчивается на `_test`, и создают её сами.
