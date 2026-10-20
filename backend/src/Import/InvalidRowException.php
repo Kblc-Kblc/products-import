@@ -4,6 +4,4 @@ declare(strict_types=1);
 
 namespace App\Import;
 
-final class InvalidRowException extends \RuntimeException
-{
-}
+final class InvalidRowException extends \RuntimeException {}

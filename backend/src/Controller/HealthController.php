@@ -12,7 +12,7 @@ final class HealthController
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $checks = [
-            'db' => $this->check(fn () => new \PDO(
+            'db' => $this->check(fn() => new \PDO(
                 sprintf('pgsql:host=%s;port=%s;dbname=%s', getenv('DB_HOST'), getenv('DB_PORT'), getenv('DB_NAME')),
                 (string) getenv('DB_USER'),
                 (string) getenv('DB_PASSWORD'),
@@ -35,7 +35,7 @@ final class HealthController
 
         return Json::write($response, [
             'status' => $healthy ? 'ok' : 'fail',
-            'checks' => array_map(fn (bool $ok) => $ok ? 'ok' : 'fail', $checks),
+            'checks' => array_map(fn(bool $ok) => $ok ? 'ok' : 'fail', $checks),
         ], $healthy ? 200 : 503);
     }
 

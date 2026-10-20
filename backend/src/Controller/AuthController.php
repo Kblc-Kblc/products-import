@@ -14,8 +14,7 @@ final class AuthController
         private readonly JwtService $jwt,
         private readonly string $adminEmail,
         private readonly string $adminPassword,
-    ) {
-    }
+    ) {}
 
     /** POST /api/auth/login {"email": "...", "password": "..."} */
     public function login(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface

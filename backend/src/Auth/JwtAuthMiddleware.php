@@ -17,8 +17,7 @@ final class JwtAuthMiddleware implements MiddlewareInterface
     public function __construct(
         private readonly JwtService $jwt,
         private readonly ResponseFactoryInterface $responses,
-    ) {
-    }
+    ) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {

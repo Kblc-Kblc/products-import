@@ -1,7 +1,9 @@
 name: products-import
 
 x-backend: &backend
-  build: ./backend
+  build:
+    context: ./backend
+    target: app
   env_file: .env
   environment:
     MESSENGER_TRANSPORT_DSN: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/%2f/messages
@@ -23,6 +25,18 @@ services:
   worker:
     <<: *backend
     command: php bin/console messenger:consume async --time-limit=3600 --memory-limit=256M -vv
+
+  # Tests and linters: `docker compose run --rm tests` (not started by `up`)
+  tests:
+    build:
+      context: ./backend
+      target: test
+    profiles: [tools]
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    command: vendor/bin/phpunit
 
   nginx:
     build:

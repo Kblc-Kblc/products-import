@@ -15,9 +15,7 @@ final class ProductController
 {
     private const MAX_LIMIT = 100;
 
-    public function __construct(private readonly ProductRepository $products)
-    {
-    }
+    public function __construct(private readonly ProductRepository $products) {}
 
     /** GET /api/products?page=1&limit=20&name=&price_min=&price_max= */
     public function list(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -39,10 +37,10 @@ final class ProductController
         }
 
         $result = $this->products->search($name === '' ? null : $name, $minPrice, $maxPrice, $page, $limit);
-        $images = $this->products->firstImagePaths(array_map(fn (Product $p) => (int) $p->getId(), $result['items']));
+        $images = $this->products->firstImagePaths(array_map(fn(Product $p) => (int) $p->getId(), $result['items']));
 
         return Json::write($response, [
-            'items' => array_map(fn (Product $p) => [
+            'items' => array_map(fn(Product $p) => [
                 'id' => $p->getId(),
                 'externalCode' => $p->getExternalCode(),
                 'name' => $p->getName(),
@@ -76,11 +74,11 @@ final class ProductController
             'description' => $product->getDescription(),
             'price' => $product->getPrice(),
             'discount' => $product->getDiscount(),
-            'attributes' => $product->getAttributes()->map(fn (ProductAttribute $a) => [
+            'attributes' => $product->getAttributes()->map(fn(ProductAttribute $a) => [
                 'key' => $a->getKey(),
                 'value' => $a->getValue(),
             ])->getValues(),
-            'images' => $product->getImages()->map(fn (ProductImage $i) => [
+            'images' => $product->getImages()->map(fn(ProductImage $i) => [
                 'url' => $i->getUrl(),
                 'path' => $i->getPath(),
                 'src' => self::src($i->getPath()),

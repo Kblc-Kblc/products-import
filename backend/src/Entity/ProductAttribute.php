@@ -24,8 +24,7 @@ class ProductAttribute
         private string $key,
         #[ORM\Column(type: Types::TEXT, nullable: true)]
         private ?string $value,
-    ) {
-    }
+    ) {}
 
     public function getId(): ?int
     {

@@ -12,8 +12,7 @@ final class ProductImporter
     public function __construct(
         private readonly ProductRepository $products,
         private readonly ImageDownloader $images,
-    ) {
-    }
+    ) {}
 
     /**
      * Upserts the product by external code, replacing its attributes and images.

@@ -3,6 +3,9 @@
 
 declare(strict_types=1);
 
+use App\Fixtures\ProductFixtures;
+use Doctrine\Common\DataFixtures\Executor\ORMExecutor;
+use Doctrine\Common\DataFixtures\Purger\ORMPurger;
 use Doctrine\Migrations\Configuration\EntityManager\ExistingEntityManager;
 use Doctrine\Migrations\Configuration\Migration\ConfigurationArray;
 use Doctrine\Migrations\DependencyFactory;
@@ -12,6 +15,10 @@ use Doctrine\ORM\Tools\Console\ConsoleRunner as OrmConsoleRunner;
 use Doctrine\ORM\Tools\Console\EntityManagerProvider\SingleManagerProvider;
 use Psr\Log\AbstractLogger;
 use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Messenger\Command\ConsumeMessagesCommand;
 use Symfony\Component\Messenger\EventListener\StopWorkerOnCustomStopExceptionListener;
@@ -46,5 +53,16 @@ $cli->add(new ConsumeMessagesCommand(
     },
     receiverNames: ['async'],
 ));
+
+$cli->register('app:fixtures:load')
+    ->setDescription('Seed products, attributes and images with test data')
+    ->addOption('append', null, InputOption::VALUE_NONE, 'Keep existing data instead of purging it')
+    ->setCode(function (InputInterface $input, OutputInterface $output) use ($entityManager): int {
+        $append = (bool) $input->getOption('append');
+        (new ORMExecutor($entityManager, new ORMPurger($entityManager)))->execute([new ProductFixtures()], $append);
+        $output->writeln(sprintf('Loaded %d products%s.', ProductFixtures::COUNT, $append ? '' : ' (tables purged first)'));
+
+        return Command::SUCCESS;
+    });
 
 $cli->run();

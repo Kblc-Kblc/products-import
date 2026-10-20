@@ -17,3 +17,8 @@ WORKDIR /app
 COPY --from=vendor /app /app
 # Downloaded product images; owned by www-data so the named volume inherits it
 RUN mkdir -p storage/images storage/imports && chown -R www-data:www-data storage
+
+# Stage 3: dev tooling (phpunit, phpstan, php-cs-fixer); not used by app/worker
+FROM app AS test
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+RUN composer install --no-interaction --prefer-dist

@@ -9,6 +9,5 @@ final readonly class ImportProductsMessage
     public function __construct(
         public int $jobId,
         public string $filePath,
-    ) {
-    }
+    ) {}
 }

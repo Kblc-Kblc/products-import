@@ -9,9 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 final class ProductRepository
 {
-    public function __construct(private readonly EntityManagerInterface $em)
-    {
-    }
+    public function __construct(private readonly EntityManagerInterface $em) {}
 
     public function find(int $id): ?Product
     {
@@ -84,6 +82,13 @@ final class ProductRepository
     /** Saves the product with its attributes and images atomically. */
     public function save(Product $product): void
     {
-        $this->em->wrapInTransaction(fn () => $this->em->persist($product));
+        $this->em->wrapInTransaction(fn() => $this->em->persist($product));
+    }
+
+    /** Attributes and images go with it (FK ON DELETE CASCADE + orphanRemoval). */
+    public function delete(Product $product): void
+    {
+        $this->em->remove($product);
+        $this->em->flush();
     }
 }

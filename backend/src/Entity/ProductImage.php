@@ -25,8 +25,7 @@ class ProductImage
         // Local path relative to storage/; null when the download failed
         #[ORM\Column(length: 255, nullable: true)]
         private ?string $path,
-    ) {
-    }
+    ) {}
 
     public function getId(): ?int
     {

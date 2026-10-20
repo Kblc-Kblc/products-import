@@ -9,9 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 final class ImportJobRepository
 {
-    public function __construct(private readonly EntityManagerInterface $em)
-    {
-    }
+    public function __construct(private readonly EntityManagerInterface $em) {}
 
     public function find(int $id): ?ImportJob
     {

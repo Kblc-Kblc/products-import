@@ -20,7 +20,7 @@ final class XlsxReader
         $sheet = $reader->load($path)->getActiveSheet();
 
         $rows = $sheet->toArray(null, true, false, false);
-        $headers = array_map(fn (mixed $h) => trim((string) $h), array_shift($rows) ?? []);
+        $headers = array_map(fn(mixed $h) => trim((string) $h), array_shift($rows) ?? []);
         $missing = array_diff(ProductRowParser::REQUIRED_COLUMNS, $headers);
         if ($missing !== []) {
             throw new \RuntimeException('В файле нет обязательных колонок: ' . implode(', ', $missing));
@@ -28,7 +28,7 @@ final class XlsxReader
 
         $result = [];
         foreach ($rows as $i => $row) {
-            if (array_filter($row, fn (mixed $v) => $v !== null && $v !== '') === []) {
+            if (array_filter($row, fn(mixed $v) => $v !== null && $v !== '') === []) {
                 continue;
             }
             // shortcut: duplicate header names keep the last column, fine for the given format

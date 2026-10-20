@@ -39,7 +39,7 @@ return (new ContainerBuilder())
         'storage.dir' => __DIR__ . '/../storage',
 
         ResponseFactoryInterface::class => autowire(ResponseFactory::class),
-        JwtService::class => fn () => new JwtService((string) getenv('JWT_SECRET')),
+        JwtService::class => fn() => new JwtService((string) getenv('JWT_SECRET')),
         AuthController::class => autowire()
             ->constructorParameter('adminEmail', (string) getenv('ADMIN_EMAIL'))
             ->constructorParameter('adminPassword', (string) getenv('ADMIN_PASSWORD')),
@@ -50,7 +50,7 @@ return (new ContainerBuilder())
                 isDevMode: getenv('APP_DEBUG') === '1',
             );
             $config->setAutoGenerateProxyClasses(ProxyFactory::AUTOGENERATE_FILE_NOT_EXISTS);
-            $config->setNamingStrategy(new UnderscoreNamingStrategy(CASE_LOWER, true));
+            $config->setNamingStrategy(new UnderscoreNamingStrategy(CASE_LOWER));
 
             $connection = DriverManager::getConnection([
                 'driver' => 'pdo_pgsql',
@@ -65,23 +65,23 @@ return (new ContainerBuilder())
         },
 
         // Image URLs come from user files: block requests to internal hosts (db, rabbitmq, metadata, ...)
-        ImageDownloader::class => fn (ContainerInterface $c) => new ImageDownloader(
+        ImageDownloader::class => fn(ContainerInterface $c) => new ImageDownloader(
             new NoPrivateNetworkHttpClient(HttpClient::create()),
             $c->get('storage.dir'),
         ),
         ImportService::class => autowire()->constructorParameter('storageDir', get('storage.dir')),
 
         // Messenger: the "async" transport is RabbitMQ; the same bus sends (web) and handles (worker)
-        'async' => fn () => (new AmqpTransportFactory())->createTransport(
+        'async' => fn() => (new AmqpTransportFactory())->createTransport(
             (string) getenv('MESSENGER_TRANSPORT_DSN'),
             [],
             new PhpSerializer(),
         ),
-        MessageBusInterface::class => fn (ContainerInterface $c) => new MessageBus([
+        MessageBusInterface::class => fn(ContainerInterface $c) => new MessageBus([
             new SendMessageMiddleware(new SendersLocator([ImportProductsMessage::class => ['async']], $c)),
             new HandleMessageMiddleware(new HandlersLocator([
                 ImportProductsMessage::class => [
-                    fn (ImportProductsMessage $m) => $c->get(ImportProductsHandler::class)($m),
+                    fn(ImportProductsMessage $m) => $c->get(ImportProductsHandler::class)($m),
                 ],
             ])),
         ]),

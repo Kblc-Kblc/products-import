@@ -15,8 +15,7 @@ final class ImportController
     public function __construct(
         private readonly ImportService $imports,
         private readonly ImportJobRepository $jobs,
-    ) {
-    }
+    ) {}
 
     /** POST /api/imports (multipart, field "file") */
     public function create(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface

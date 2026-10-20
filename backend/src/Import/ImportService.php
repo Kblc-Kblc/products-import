@@ -21,8 +21,7 @@ final class ImportService
         private readonly ImportJobRepository $jobs,
         private readonly MessageBusInterface $bus,
         private readonly string $storageDir,
-    ) {
-    }
+    ) {}
 
     /**
      * Validates the upload, stores it and queues the import.
@@ -52,7 +51,7 @@ final class ImportService
         }
 
         $dir = $this->storageDir . '/imports';
-        is_dir($dir) || mkdir($dir, 0775, true);
+        is_dir($dir) || mkdir($dir, 0o775, true);
         $path = $dir . '/' . bin2hex(random_bytes(16)) . '.xlsx';
         $file->moveTo($path);
 

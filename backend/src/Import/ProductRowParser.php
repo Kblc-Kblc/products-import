@@ -53,7 +53,7 @@ final class ProductRowParser
             }
         }
 
-        if ($errors !== [] || $externalCode === null || $name === null || $price === null) {
+        if ($errors !== []) {
             throw new InvalidRowException(implode('; ', $errors));
         }
 

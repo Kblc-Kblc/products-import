@@ -15,8 +15,7 @@ final class ImageDownloader
     public function __construct(
         private readonly HttpClientInterface $http,
         private readonly string $storageDir,
-    ) {
-    }
+    ) {}
 
     /**
      * Downloads the image once per URL (products often share photos).
@@ -51,7 +50,7 @@ final class ImageDownloader
         }
 
         $relative = 'images/' . sha1($url) . '.' . $extension;
-        is_dir($this->storageDir . '/images') || mkdir($this->storageDir . '/images', 0775, true);
+        is_dir($this->storageDir . '/images') || mkdir($this->storageDir . '/images', 0o775, true);
         file_put_contents($this->storageDir . '/' . $relative, $body);
 
         return $relative;

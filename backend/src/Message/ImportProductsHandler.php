@@ -20,8 +20,7 @@ final class ImportProductsHandler
         private readonly ProductRowParser $parser,
         private readonly ProductImporter $importer,
         private readonly EntityManagerInterface $em,
-    ) {
-    }
+    ) {}
 
     public function __invoke(ImportProductsMessage $message): void
     {
@@ -40,7 +39,7 @@ final class ImportProductsHandler
                 try {
                     $created = $this->importer->import(
                         $this->parser->parse($cells),
-                        fn (string $warning) => $job->addError($rowNumber, $warning),
+                        fn(string $warning) => $job->addError($rowNumber, $warning),
                     );
                 } catch (InvalidRowException $e) {
                     $job->addError($rowNumber, $e->getMessage());
