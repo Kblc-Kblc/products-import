@@ -84,3 +84,43 @@ test('unknown product shows not found', async ({ page }) => {
   await page.goto('/products/999999');
   await expect(page.getByRole('alert')).toHaveText('Товар не найден');
 });
+
+test('import progress is visible in the header on other pages, then a toast links to the report', async ({ page }) => {
+  // Hold the job in "processing" for the first polls so the header bar can be observed deterministically
+  let polls = 0;
+  await page.route(/\/api\/imports\/\d+$/, async (route) => {
+    const response = await route.fetch();
+    const job = await response.json();
+    if (++polls <= 3) Object.assign(job, { status: 'processing', processed: 10, total: 40 });
+    await route.fulfill({ response, json: job });
+  });
+
+  await login(page);
+  await page.getByRole('link', { name: 'Импорт' }).click();
+  await page.locator('input[type=file]').setInputFiles(XLSX);
+  await page.getByRole('button', { name: 'Импортировать' }).click();
+  await expect(page.getByText('выполняется', { exact: true })).toBeVisible();
+
+  // Go to a product card: the header keeps showing the running import
+  await page.goto('/products/1');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  const headerProgress = page.getByRole('status').filter({ hasText: 'Импорт «' });
+  await expect(headerProgress).toContainText('10 из 40');
+
+  // When it finishes: header bar disappears, toast offers the report
+  await expect(page.getByText(/Импорт завершён: создано \d+, обновлено \d+, ошибок \d+/)).toBeVisible({ timeout: 45_000 });
+  await expect(headerProgress).toBeHidden();
+  await page.getByRole('button', { name: 'Отчёт' }).click();
+  await expect(page).toHaveURL(/\/import$/);
+  await expect(page.getByRole('heading', { name: 'Отчёт об ошибках' })).toBeVisible();
+});
+
+test('network failure shows a toast instead of failing silently', async ({ page }) => {
+  await login(page);
+  await page.route('**/api/products?**', (route) => route.abort('internetdisconnected'));
+  await page.getByLabel('Название').fill('что угодно');
+  await page.getByRole('button', { name: 'Найти' }).click();
+
+  await expect(page.getByText('Нет связи с сервером. Проверьте подключение к сети.')).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveText('Не удалось загрузить товары');
+});

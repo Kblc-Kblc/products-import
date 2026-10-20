@@ -8,12 +8,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
 import { RouterLink } from '@angular/router';
-import { Observable, switchMap } from 'rxjs';
 import { ImportJob } from '../../models';
-import { ImportService } from '../../services/import.service';
+import { ImportTrackerService } from '../../services/import-tracker.service';
 
 const MAX_BYTES = 10 * 1024 * 1024;
-const LAST_JOB_KEY = 'lastImportId';
 
 @Component({
   selector: 'app-import-page',
@@ -23,7 +21,7 @@ const LAST_JOB_KEY = 'lastImportId';
   styleUrl: './import.page.scss',
 })
 export class ImportPage {
-  private readonly importService = inject(ImportService);
+  private readonly tracker = inject(ImportTrackerService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly statusLabels: Record<ImportJob['status'], string> = {
@@ -34,26 +32,12 @@ export class ImportPage {
   };
 
   protected readonly file = signal<File | null>(null);
-  protected readonly job = signal<ImportJob | null>(null);
   protected readonly uploading = signal(false);
   protected readonly error = signal<string | null>(null);
 
-  protected readonly running = computed(() => {
-    const status = this.job()?.status;
-    return this.uploading() || status === 'queued' || status === 'processing';
-  });
-  protected readonly percent = computed(() => {
-    const job = this.job();
-    return job && job.total > 0 ? Math.round((job.processed / job.total) * 100) : 0;
-  });
-
-  constructor() {
-    // Resume showing the last import after navigating away and back
-    const lastId = Number(localStorage.getItem(LAST_JOB_KEY));
-    if (lastId) {
-      this.follow(this.importService.watch(lastId));
-    }
-  }
+  protected readonly job = this.tracker.job;
+  protected readonly percent = this.tracker.percent;
+  protected readonly running = computed(() => this.uploading() || this.tracker.running());
 
   onFileSelected(input: HTMLInputElement): void {
     const file = input.files?.[0] ?? null;
@@ -75,33 +59,19 @@ export class ImportPage {
     if (!file) return;
     this.uploading.set(true);
     this.error.set(null);
-    this.job.set(null);
-    this.follow(
-      this.importService.upload(file).pipe(
-        switchMap((job) => {
-          localStorage.setItem(LAST_JOB_KEY, String(job.id));
-          this.uploading.set(false);
-          this.file.set(null);
-          return this.importService.watch(job.id);
-        }),
-      ),
-    );
-  }
-
-  private follow(job$: Observable<ImportJob>): void {
-    job$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (job) => this.job.set(job),
+    this.tracker.upload(file).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.uploading.set(false);
+        this.file.set(null);
+      },
       error: (e: unknown) => {
         this.uploading.set(false);
-        if (e instanceof HttpErrorResponse && e.status === 404) {
-          localStorage.removeItem(LAST_JOB_KEY);
-          return;
+        // Network/5xx/429 are already reported by the HTTP interceptor toast
+        if (e instanceof HttpErrorResponse && typeof e.error?.error === 'string') {
+          this.error.set(e.error.error);
+        } else if (!(e instanceof HttpErrorResponse)) {
+          this.error.set('Не удалось загрузить файл');
         }
-        this.error.set(
-          e instanceof HttpErrorResponse && typeof e.error?.error === 'string'
-            ? e.error.error
-            : 'Не удалось загрузить файл',
-        );
       },
     });
   }
