@@ -1,33 +1,40 @@
-import { Page, expect, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import path from 'node:path';
+import { EMAIL, PASSWORD } from './credentials';
 
-const EMAIL = process.env['E2E_EMAIL'] ?? 'admin@example.com';
-const PASSWORD = process.env['E2E_PASSWORD'] ?? 'admin123';
 const XLSX = path.resolve(__dirname, '../../import example (2) Фул.xlsx');
-
-async function login(page: Page): Promise<void> {
-  await page.goto('/login');
-  await page.getByLabel('Email').fill(EMAIL);
-  await page.getByLabel('Пароль', { exact: true }).fill(PASSWORD);
-  await page.getByRole('button', { name: 'Войти' }).click();
-  await expect(page.getByRole('button', { name: 'Выйти' })).toBeVisible();
-}
 
 test.describe.configure({ mode: 'serial' });
 
-test('guest is redirected to login and wrong password is rejected', async ({ page }) => {
-  await page.goto('/products');
-  await expect(page).toHaveURL(/\/login$/);
+// Tests below run signed in (session from auth.setup.ts) unless they reset the storage state
+test.describe('as a guest', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
 
-  await page.getByLabel('Email').fill(EMAIL);
-  await page.getByLabel('Пароль', { exact: true }).fill('wrong-password');
-  await page.getByRole('button', { name: 'Войти' }).click();
-  await expect(page.getByRole('alert')).toContainText('Неверный email или пароль');
+  test('guest is redirected to login and wrong password is rejected', async ({ page }) => {
+    await page.goto('/products');
+    await expect(page).toHaveURL(/\/login$/);
+
+    await page.getByLabel('Email').fill(EMAIL);
+    await page.getByLabel('Пароль', { exact: true }).fill('wrong-password');
+    await page.getByRole('button', { name: 'Войти' }).click();
+    await expect(page.getByRole('alert')).toContainText('Неверный email или пароль');
+  });
+
+  test('after login the user always lands on /products; /login is skipped when signed in', async ({ page }) => {
+    await page.goto('/import');
+    await expect(page).toHaveURL(/\/login$/);
+    await page.getByLabel('Email').fill(EMAIL);
+    await page.getByLabel('Пароль', { exact: true }).fill(PASSWORD);
+    await page.getByRole('button', { name: 'Войти' }).click();
+    await expect(page).toHaveURL(/\/products$/);
+
+    await page.goto('/login');
+    await expect(page).toHaveURL(/\/products$/);
+  });
 });
 
 test('import: upload xlsx, see progress finish and error report', async ({ page }) => {
-  await login(page);
-  await page.getByRole('link', { name: 'Импорт' }).click();
+  await page.goto('/import');
 
   await page.locator('input[type=file]').setInputFiles(XLSX);
   await page.getByRole('button', { name: 'Импортировать' }).click();
@@ -39,8 +46,7 @@ test('import: upload xlsx, see progress finish and error report', async ({ page 
 });
 
 test('list: server pagination and filters', async ({ page }) => {
-  await login(page);
-  await expect(page).toHaveURL(/\/products$/);
+  await page.goto('/products');
   const items = page.locator('a.product-row');
   await expect(items).toHaveCount(20);
 
@@ -64,7 +70,7 @@ test('list: server pagination and filters', async ({ page }) => {
 });
 
 test('card: fields, attributes and images', async ({ page }) => {
-  await login(page);
+  await page.goto('/products');
   await page.getByLabel('Название').fill('Grigio/Verde');
   await page.getByRole('button', { name: 'Найти' }).click();
   await page.locator('a.product-row').first().click();
@@ -79,18 +85,7 @@ test('card: fields, attributes and images', async ({ page }) => {
   await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
 });
 
-test('after login the user always lands on /products; /login is skipped when signed in', async ({ page }) => {
-  await page.goto('/import');
-  await expect(page).toHaveURL(/\/login$/);
-  await login(page);
-  await expect(page).toHaveURL(/\/products$/);
-
-  await page.goto('/login');
-  await expect(page).toHaveURL(/\/products$/);
-});
-
 test('unknown product shows not found', async ({ page }) => {
-  await login(page);
   await page.goto('/products/999999');
   await expect(page.getByRole('alert')).toHaveText('Товар не найден');
 });
@@ -105,8 +100,7 @@ test('import progress is visible in the header on other pages, then a toast link
     await route.fulfill({ response, json: job });
   });
 
-  await login(page);
-  await page.getByRole('link', { name: 'Импорт' }).click();
+  await page.goto('/import');
   await page.locator('input[type=file]').setInputFiles(XLSX);
   await page.getByRole('button', { name: 'Импортировать' }).click();
   await expect(page.getByText('выполняется', { exact: true })).toBeVisible();
@@ -118,7 +112,8 @@ test('import progress is visible in the header on other pages, then a toast link
   await expect(headerProgress).toContainText('10 из 40');
 
   // When it finishes: header bar disappears, toast offers the report
-  await expect(page.getByText(/Импорт завершён: создано \d+, обновлено \d+, ошибок \d+/)).toBeVisible({ timeout: 45_000 });
+  const toast = page.locator('mat-snack-bar-container');
+  await expect(toast).toContainText(/Импорт завершён: создано \d+, обновлено \d+, ошибок \d+/, { timeout: 45_000 });
   await expect(headerProgress).toBeHidden();
   await page.getByRole('button', { name: 'Отчёт' }).click();
   await expect(page).toHaveURL(/\/import$/);
@@ -126,11 +121,12 @@ test('import progress is visible in the header on other pages, then a toast link
 });
 
 test('network failure shows a toast instead of failing silently', async ({ page }) => {
-  await login(page);
+  await page.goto('/products');
   await page.route('**/api/products?**', (route) => route.abort('internetdisconnected'));
   await page.getByLabel('Название').fill('что угодно');
   await page.getByRole('button', { name: 'Найти' }).click();
 
-  await expect(page.getByText('Нет связи с сервером. Проверьте подключение к сети.')).toBeVisible();
+  // The snack bar's text is also mirrored into a screen-reader live region, so look inside the snack bar itself
+  await expect(page.locator('mat-snack-bar-container')).toContainText('Нет связи с сервером. Проверьте подключение к сети.');
   await expect(page.getByRole('alert')).toContainText('Не удалось загрузить товары');
 });
