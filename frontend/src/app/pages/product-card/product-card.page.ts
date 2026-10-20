@@ -7,9 +7,11 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { catchError, map, of, startWith, switchMap } from 'rxjs';
 import { Product } from '../../models';
 import { ProductService } from '../../services/product.service';
+import { selectProductsQueryParams } from '../../store/products';
 
 type CardState = { loading: true } | { loading: false; product: Product } | { loading: false; error: string };
 
@@ -22,6 +24,9 @@ type CardState = { loading: true } | { loading: false; product: Product } | { lo
 })
 export class ProductCardPage {
   private readonly productService = inject(ProductService);
+
+  /** Back link returns to the page and filters the user came from */
+  protected readonly listParams$ = inject(Store).select(selectProductsQueryParams);
 
   /** Bound from the :id route param */
   readonly id = input.required<string>();

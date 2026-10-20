@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Import;
 
+use Symfony\Contracts\HttpClient\Exception\HttpExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 final class ImageDownloader
@@ -45,6 +46,8 @@ final class ImageDownloader
             // Sniff the bytes: servers often send images as binary/octet-stream
             $type = (string) (new \finfo(FILEINFO_MIME_TYPE))->buffer($body);
             $extension = self::EXTENSIONS[$type] ?? throw new \RuntimeException("не изображение ($type)");
+        } catch (HttpExceptionInterface $e) {
+            throw new \RuntimeException("не удалось скачать $url: HTTP {$e->getResponse()->getStatusCode()}", 0, $e);
         } catch (\Throwable $e) {
             throw new \RuntimeException("не удалось скачать $url: {$e->getMessage()}", 0, $e);
         }

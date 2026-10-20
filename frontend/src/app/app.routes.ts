@@ -1,8 +1,5 @@
 import { Routes } from '@angular/router';
-import { provideEffects } from '@ngrx/effects';
-import { provideState } from '@ngrx/store';
 import { authGuard } from './core/auth.guard';
-import { PRODUCTS_FEATURE_KEY, ProductsEffects, productsReducer } from './store/products';
 
 export const routes: Routes = [
   {
@@ -18,20 +15,7 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'products' },
       {
         path: 'products',
-        // Products store is registered only when this lazy section is first visited
-        providers: [provideState(PRODUCTS_FEATURE_KEY, productsReducer), provideEffects(ProductsEffects)],
-        children: [
-          {
-            path: '',
-            title: 'Товары',
-            loadComponent: () => import('./pages/product-list/product-list.page').then((m) => m.ProductListPage),
-          },
-          {
-            path: ':id',
-            title: 'Карточка товара',
-            loadComponent: () => import('./pages/product-card/product-card.page').then((m) => m.ProductCardPage),
-          },
-        ],
+        loadChildren: () => import('./pages/products.routes').then((m) => m.PRODUCTS_ROUTES),
       },
       {
         path: 'import',

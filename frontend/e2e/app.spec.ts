@@ -44,9 +44,15 @@ test('list: server pagination and filters', async ({ page }) => {
   const items = page.locator('mat-nav-list a');
   await expect(items).toHaveCount(20);
 
-  await page.getByRole('button', { name: 'Next page' }).click();
+  await page.getByRole('button', { name: 'Следующая страница' }).click();
   await expect(page).toHaveURL(/page=2/);
   await expect(items).toHaveCount(20);
+  await expect(page.getByText('21 – 40 из 40')).toBeVisible();
+
+  // "К списку" on the card returns to the same page
+  await items.first().click();
+  await page.getByRole('link', { name: 'К списку' }).click();
+  await expect(page).toHaveURL(/\/products\?page=2$/);
 
   await page.getByLabel('Название').fill('бермуды');
   await page.getByLabel('Цена от, ₽').fill('1000');

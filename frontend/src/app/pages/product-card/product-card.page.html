@@ -1,4 +1,4 @@
-<a mat-button routerLink="/products"><mat-icon>arrow_back</mat-icon> К списку</a>
+<a mat-button routerLink="/products" [queryParams]="listParams$ | async"><mat-icon>arrow_back</mat-icon> К списку</a>
 
 @if (state$ | async; as state) {
   @if (state.loading) {

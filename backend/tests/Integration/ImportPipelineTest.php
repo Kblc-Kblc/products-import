@@ -49,6 +49,7 @@ final class ImportPipelineTest extends IntegrationTestCase
             array_column($data['errors'], 'row'),
             'the 404 image of row 2, empty code (row 3) and bad price (row 4) are reported in file order',
         );
+        self::assertSame('не удалось скачать http://img/missing.jpg: HTTP 404', $data['errors'][0]['message']);
 
         $product = $this->service(ProductRepository::class)->findByExternalCode('A-1');
         self::assertNotNull($product);
