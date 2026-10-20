@@ -1,0 +1,50 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Doctrine\Migrations\Configuration\EntityManager\ExistingEntityManager;
+use Doctrine\Migrations\Configuration\Migration\ConfigurationArray;
+use Doctrine\Migrations\DependencyFactory;
+use Doctrine\Migrations\Tools\Console\ConsoleRunner as MigrationsConsoleRunner;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Tools\Console\ConsoleRunner as OrmConsoleRunner;
+use Doctrine\ORM\Tools\Console\EntityManagerProvider\SingleManagerProvider;
+use Psr\Log\AbstractLogger;
+use Symfony\Component\Console\Application;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\Messenger\Command\ConsumeMessagesCommand;
+use Symfony\Component\Messenger\EventListener\StopWorkerOnCustomStopExceptionListener;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\RoutableMessageBus;
+
+$container = require __DIR__ . '/../config/container.php';
+$entityManager = $container->get(EntityManagerInterface::class);
+
+$cli = new Application('products-import');
+OrmConsoleRunner::addCommands($cli, new SingleManagerProvider($entityManager));
+MigrationsConsoleRunner::addCommands($cli, DependencyFactory::fromEntityManager(
+    new ConfigurationArray([
+        'migrations_paths' => ['App\Migrations' => __DIR__ . '/../migrations'],
+    ]),
+    new ExistingEntityManager($entityManager),
+));
+
+$dispatcher = new EventDispatcher();
+$dispatcher->addSubscriber(new StopWorkerOnCustomStopExceptionListener());
+$cli->add(new ConsumeMessagesCommand(
+    new RoutableMessageBus($container, $container->get(MessageBusInterface::class)),
+    $container,
+    $dispatcher,
+    // Without a logger the worker swallows handler failures silently
+    new class extends AbstractLogger {
+        public function log($level, string|\Stringable $message, array $context = []): void
+        {
+            $exception = $context['exception'] ?? null;
+            fwrite(STDERR, sprintf("[%s] %s%s\n", $level, $message, $exception instanceof \Throwable ? ': ' . $exception->getMessage() : ''));
+        }
+    },
+    receiverNames: ['async'],
+));
+
+$cli->run();
