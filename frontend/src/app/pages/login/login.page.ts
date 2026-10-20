@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -129,9 +129,6 @@ export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  /** Bound from the ?returnUrl= query param */
-  readonly returnUrl = input<string>();
-
   protected readonly loading = signal(false);
   protected readonly showPassword = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -149,7 +146,7 @@ export class LoginPage {
     this.error.set(null);
     const { email, password } = this.form.getRawValue();
     this.auth.login(email, password).subscribe({
-      next: () => void this.router.navigateByUrl(this.safeReturnUrl()),
+      next: () => void this.router.navigate(['/products']),
       error: (e: { status?: number }) => {
         this.loading.set(false);
         this.error.set(e.status === 401 ? 'Неверный email или пароль' : 'Не удалось войти, попробуйте ещё раз');
@@ -157,9 +154,4 @@ export class LoginPage {
     });
   }
 
-  /** Only same-app paths, so ?returnUrl= can't send the user to another site */
-  private safeReturnUrl(): string {
-    const url = this.returnUrl();
-    return url && url.startsWith('/') && !url.startsWith('//') ? url : '/products';
-  }
 }

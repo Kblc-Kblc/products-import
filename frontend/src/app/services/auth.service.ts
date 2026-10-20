@@ -38,10 +38,10 @@ export class AuthService {
     );
   }
 
-  logout(returnUrl?: string): void {
+  logout(): void {
     localStorage.removeItem(STORAGE_KEY);
     this.session.set(null);
-    void this.router.navigate(['/login'], { queryParams: returnUrl ? { returnUrl } : {} });
+    void this.router.navigate(['/login']);
   }
 
   private restore(): Session | null {

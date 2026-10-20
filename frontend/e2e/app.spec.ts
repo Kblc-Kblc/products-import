@@ -17,7 +17,7 @@ test.describe.configure({ mode: 'serial' });
 
 test('guest is redirected to login and wrong password is rejected', async ({ page }) => {
   await page.goto('/products');
-  await expect(page).toHaveURL(/\/login\?returnUrl=%2Fproducts/);
+  await expect(page).toHaveURL(/\/login$/);
 
   await page.getByLabel('Email').fill(EMAIL);
   await page.getByLabel('Пароль', { exact: true }).fill('wrong-password');
@@ -77,6 +77,16 @@ test('card: fields, attributes and images', async ({ page }) => {
   const image = page.getByRole('region', { name: 'Изображения' }).locator('img').first();
   await expect(image).toBeVisible();
   await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+});
+
+test('after login the user always lands on /products; /login is skipped when signed in', async ({ page }) => {
+  await page.goto('/import');
+  await expect(page).toHaveURL(/\/login$/);
+  await login(page);
+  await expect(page).toHaveURL(/\/products$/);
+
+  await page.goto('/login');
+  await expect(page).toHaveURL(/\/products$/);
 });
 
 test('unknown product shows not found', async ({ page }) => {

@@ -1,7 +1,6 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
@@ -11,7 +10,6 @@ import { AuthService } from '../services/auth.service';
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
-  const router = inject(Router);
   const snackBar = inject(MatSnackBar);
 
   const token = auth.token();
@@ -23,7 +21,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse) {
         if (error.status === 401 && !req.url.endsWith('/auth/login')) {
-          auth.logout(router.url);
+          auth.logout();
         } else if (error.status === 0) {
           snackBar.open('Нет связи с сервером. Проверьте подключение к сети.', 'OK', { panelClass: 'toast-error' });
         } else if (error.status >= 500) {
