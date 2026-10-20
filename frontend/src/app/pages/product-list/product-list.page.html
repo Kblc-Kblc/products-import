@@ -1,0 +1,65 @@
+<h1>Товары</h1>
+
+<form class="filters" [formGroup]="filters" (ngSubmit)="applyFilters()">
+  <mat-form-field class="name">
+    <mat-label>Название</mat-label>
+    <input matInput formControlName="name" type="search" />
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Цена от, ₽</mat-label>
+    <input matInput formControlName="priceMin" type="number" min="0" />
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Цена до, ₽</mat-label>
+    <input matInput formControlName="priceMax" type="number" min="0" />
+  </mat-form-field>
+  <div class="actions">
+    <button mat-flat-button type="submit">Найти</button>
+    <button mat-button type="button" (click)="resetFilters()">Сбросить</button>
+  </div>
+</form>
+
+@if (loading$ | async) {
+  <mat-progress-bar mode="indeterminate" aria-label="Загрузка товаров" />
+}
+
+@if (error$ | async; as error) {
+  <p class="message error" role="alert">{{ error }}</p>
+} @else {
+  @let products = (products$ | async) ?? [];
+  @if (products.length === 0 && (loading$ | async) === false) {
+    <p class="message">
+      Ничего не найдено. Измените фильтры или <a routerLink="/import">импортируйте товары</a>.
+    </p>
+  }
+  <mat-nav-list>
+    @for (product of products; track product.id) {
+      <a mat-list-item [routerLink]="['/products', product.id]" class="item">
+        @if (product.image) {
+          <img matListItemAvatar [src]="product.image" alt="" loading="lazy" width="40" height="40" />
+        } @else {
+          <mat-icon matListItemAvatar aria-hidden="true">image_not_supported</mat-icon>
+        }
+        <span matListItemTitle>{{ product.name }}</span>
+        <span matListItemLine>
+          {{ +product.price | currency: 'RUB' : 'symbol-narrow' }}
+          @if (product.discount) {
+            · скидка {{ product.discount }}%
+          }
+          · {{ product.externalCode }}
+        </span>
+      </a>
+    }
+  </mat-nav-list>
+}
+
+<mat-paginator
+  [length]="total$ | async"
+  [pageIndex]="query().page - 1"
+  [pageSize]="query().limit"
+  [pageSizeOptions]="[10, 20, 50, 100]"
+  [showFirstLastButtons]="true"
+  (page)="onPage($event)"
+  aria-label="Страницы списка товаров"
+/>
+<p class="pages">Страниц: {{ totalPages$ | async }}</p>

@@ -1,0 +1,68 @@
+<h1>Импорт товаров</h1>
+
+<mat-card appearance="outlined">
+  <mat-card-content>
+    <p>Загрузите файл .xlsx (до 10 МБ). Товары обновляются по внешнему коду, повторный импорт не создаёт дубликатов.</p>
+    <div class="picker">
+      <input #fileInput type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+             hidden (change)="onFileSelected(fileInput)" />
+      <button mat-stroked-button type="button" (click)="fileInput.click()" [disabled]="running()">
+        <mat-icon>attach_file</mat-icon> Выбрать файл
+      </button>
+      <span class="filename">{{ file()?.name ?? 'Файл не выбран' }}</span>
+      <button mat-flat-button type="button" (click)="upload()" [disabled]="!file() || running()">
+        <mat-icon>upload</mat-icon> Импортировать
+      </button>
+    </div>
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+  </mat-card-content>
+</mat-card>
+
+@if (uploading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Загрузка файла" />
+}
+
+@if (job(); as job) {
+  <section class="job" aria-live="polite">
+    <h2>
+      {{ job.filename }}
+      <span class="status" [class]="job.status">{{ statusLabels[job.status] }}</span>
+    </h2>
+
+    <mat-progress-bar
+      [mode]="job.status === 'queued' ? 'indeterminate' : 'determinate'"
+      [value]="percent()"
+      [attr.aria-valuenow]="percent()"
+      aria-label="Прогресс импорта"
+    />
+    <p class="counts">
+      Обработано {{ job.processed }} из {{ job.total }} ·
+      создано {{ job.created }} · обновлено {{ job.updated }} ·
+      ошибок {{ job.errors.length }}
+      @if (job.finishedAt) {
+        · завершён {{ job.finishedAt | date: 'dd.MM.yyyy HH:mm:ss' }}
+      }
+    </p>
+    @if (job.status === 'done') {
+      <a mat-button routerLink="/products">Перейти к товарам <mat-icon iconPositionEnd>arrow_forward</mat-icon></a>
+    }
+
+    @if (job.errors.length) {
+      <h3>Отчёт об ошибках</h3>
+      <table mat-table [dataSource]="job.errors" class="errors">
+        <ng-container matColumnDef="row">
+          <th mat-header-cell *matHeaderCellDef>Строка</th>
+          <td mat-cell *matCellDef="let e">{{ e.row || '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="message">
+          <th mat-header-cell *matHeaderCellDef>Ошибка</th>
+          <td mat-cell *matCellDef="let e">{{ e.message }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="['row', 'message']"></tr>
+        <tr mat-row *matRowDef="let row; columns: ['row', 'message']"></tr>
+      </table>
+    }
+  </section>
+}

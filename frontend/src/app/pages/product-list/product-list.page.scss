@@ -1,0 +1,17 @@
+h1 { font: var(--mat-sys-headline-medium); margin: 0 0 16px; }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+  align-items: baseline;
+
+  mat-form-field { width: 160px; }
+  .name { flex: 1 1 240px; }
+  .actions { display: flex; gap: 8px; }
+}
+
+.item img { object-fit: cover; }
+.message { margin: 24px 0; }
+.error { color: var(--mat-sys-error); }
+.pages { color: var(--mat-sys-on-surface-variant); text-align: right; margin: 0; }

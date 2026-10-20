@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Auth\JwtService;
+use App\Controller\AuthController;
 use App\Import\ImageDownloader;
 use App\Import\ImportService;
 use App\Message\ImportProductsHandler;
@@ -14,6 +16,8 @@ use Doctrine\ORM\Mapping\UnderscoreNamingStrategy;
 use Doctrine\ORM\ORMSetup;
 use Doctrine\ORM\Proxy\ProxyFactory;
 use Psr\Container\ContainerInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Slim\Psr7\Factory\ResponseFactory;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\NoPrivateNetworkHttpClient;
 use Symfony\Component\Messenger\Bridge\Amqp\Transport\AmqpTransportFactory;
@@ -33,6 +37,12 @@ require __DIR__ . '/../vendor/autoload.php';
 return (new ContainerBuilder())
     ->addDefinitions([
         'storage.dir' => __DIR__ . '/../storage',
+
+        ResponseFactoryInterface::class => autowire(ResponseFactory::class),
+        JwtService::class => fn () => new JwtService((string) getenv('JWT_SECRET')),
+        AuthController::class => autowire()
+            ->constructorParameter('adminEmail', (string) getenv('ADMIN_EMAIL'))
+            ->constructorParameter('adminPassword', (string) getenv('ADMIN_PASSWORD')),
 
         EntityManagerInterface::class => function (): EntityManagerInterface {
             $config = ORMSetup::createAttributeMetadataConfiguration(

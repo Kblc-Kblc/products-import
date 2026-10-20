@@ -15,7 +15,8 @@
         "symfony/event-dispatcher": "^7",
         "symfony/http-client": "^7",
         "phpoffice/phpspreadsheet": "^5",
-        "symfony/http-foundation": "^7"
+        "symfony/http-foundation": "^7",
+        "firebase/php-jwt": "^7"
     },
     "autoload": {
         "psr-4": {

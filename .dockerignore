@@ -1,0 +1,7 @@
+**/node_modules
+**/vendor
+**/dist
+**/.angular
+.git
+.claude
+.env
