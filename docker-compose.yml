@@ -31,6 +31,7 @@ services:
     volumes:
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - storage:/srv/storage:ro
+      - ./docs:/srv/docs:ro
     depends_on:
       - app
     restart: unless-stopped

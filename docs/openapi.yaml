@@ -1,0 +1,203 @@
+openapi: 3.0.3
+info:
+  title: Products Import API
+  version: 1.0.0
+  description: Импорт товаров из .xlsx, список и карточка товара.
+servers:
+  - url: /
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      tags: [System]
+      responses:
+        '200':
+          description: Все зависимости доступны
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+        '503':
+          description: БД или RabbitMQ недоступны
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+
+  /api/imports:
+    post:
+      summary: Загрузить .xlsx и поставить импорт в очередь
+      description: |
+        Файл проверяется (расширение .xlsx, размер до 10 МБ, тип по содержимому) и обрабатывается
+        асинхронно воркером через RabbitMQ. Прогресс — `GET /api/imports/{id}`.
+        Ограничение: 10 запросов в минуту с одного IP (всплеск до 5).
+      tags: [Imports]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '202':
+          description: Импорт поставлен в очередь
+          headers:
+            Location: { schema: { type: string }, description: URL статуса импорта }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportJob' }
+        '422':
+          description: Файл не прошёл проверку
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: Слишком много запросов
+
+  /api/imports/{id}:
+    get:
+      summary: Статус импорта и отчёт об ошибках
+      tags: [Imports]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200':
+          description: Состояние задачи
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportJob' }
+        '404':
+          description: Не найден
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/products:
+    get:
+      summary: Список товаров (серверная пагинация, фильтры)
+      tags: [Products]
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: name, in: query, description: Подстрока названия без учёта регистра, schema: { type: string } }
+        - { name: price_min, in: query, description: Цена от (включительно), schema: { type: number, minimum: 0 } }
+        - { name: price_max, in: query, description: Цена до (включительно), schema: { type: number, minimum: 0 } }
+      responses:
+        '200':
+          description: Страница товаров
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductPage' }
+        '400':
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/products/{id}:
+    get:
+      summary: Карточка товара
+      tags: [Products]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200':
+          description: Товар с атрибутами и изображениями
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404':
+          description: Не найден
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+components:
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+        fields:
+          type: object
+          additionalProperties: { type: string }
+          description: Ошибки по параметрам (для 400)
+
+    Health:
+      type: object
+      properties:
+        status: { type: string, enum: [ok, fail] }
+        checks:
+          type: object
+          properties:
+            db: { type: string, enum: [ok, fail] }
+            rabbitmq: { type: string, enum: [ok, fail] }
+
+    ImportJob:
+      type: object
+      properties:
+        id: { type: integer }
+        status: { type: string, enum: [queued, processing, done, failed] }
+        filename: { type: string }
+        total: { type: integer, description: Строк в файле }
+        processed: { type: integer }
+        created: { type: integer }
+        updated: { type: integer }
+        errors:
+          type: array
+          description: Отчёт об ошибках; row — номер строки в файле (0 — ошибка всего импорта)
+          items:
+            type: object
+            properties:
+              row: { type: integer }
+              message: { type: string }
+        createdAt: { type: string, format: date-time }
+        finishedAt: { type: string, format: date-time, nullable: true }
+
+    ProductListItem:
+      type: object
+      properties:
+        id: { type: integer }
+        externalCode: { type: string }
+        name: { type: string }
+        price: { type: string, example: '1320.00' }
+        discount: { type: string, nullable: true, example: '33.33', description: Скидка в % }
+        image: { type: string, nullable: true, example: /storage/images/ab12.jpg }
+
+    ProductPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ProductListItem' }
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
+
+    Product:
+      type: object
+      properties:
+        id: { type: integer }
+        externalCode: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        price: { type: string }
+        discount: { type: string, nullable: true }
+        attributes:
+          type: array
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              value: { type: string, nullable: true }
+        images:
+          type: array
+          items:
+            type: object
+            properties:
+              url: { type: string, description: Исходная ссылка из файла }
+              path: { type: string, nullable: true, description: Локальный путь; null если не скачалось }
+              src: { type: string, nullable: true, description: Публичный URL локальной копии }
